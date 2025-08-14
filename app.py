@@ -1,4 +1,3 @@
-# app.py
 import tkinter as tk
 from tkinter import filedialog
 from datetime import datetime
@@ -29,6 +28,7 @@ class LectorGarantiasApp:
         self.orden_textos, self.orden_paginas = [], []
         self.indice = 0
         self.modo = "factura"  # "factura" | "orden"
+        self.doc_cache = {}
 
         # datos externos
         self.concesionarios = cargar_concesionarios("Agencias.xlsx")
@@ -42,6 +42,7 @@ class LectorGarantiasApp:
         self._construir_panel_campos()
         self._construir_botones()
         self._configurar_scroll_campos()
+    
 
     # ---------- UI ----------
     def _construir_panel_ocr(self):
@@ -144,50 +145,124 @@ class LectorGarantiasApp:
     def _on_scroll_campos_linux(self, event):
         self.canvas_campos.yview_scroll(-1 if event.num == 4 else 1, "units")
         return "break"
+    
+    def _snapshot_campos(self):
+        return [c.get() for c in self.campos]
+    
+    def _restore_campos(self, valores):
+        """Restaura la lista de valores en los Entry (si coincide el largo)."""
+        if not valores or len(valores) != len(self.campos):
+            return False
+        for entry, val in zip(self.campos, valores):
+            entry.delete(0, "end")
+            entry.insert(0, val)
+        return True  
+      
+    def _new_cache_entry(self):
+        return {"values": None, "has_factura": False, "has_orden": False}
+    
+    def _save_doc_cache(self, source: str):
+        """Guarda snapshot y marca que ya se procesó 'factura' u 'orden' para el índice actual."""
+        if not self._paginas_actuales():
+            return
+        snap = self._snapshot_campos()
+        entry = self.doc_cache.get(self.indice)
+        if not entry:
+            entry = self._new_cache_entry()
+        entry["values"] = snap
+        if source == "factura":
+            entry["has_factura"] = True
+        elif source == "orden":
+            entry["has_orden"] = True
+        self.doc_cache[self.indice] = entry 
+
+    def _restore_or_process(self):
+        """
+        Si ya hay cache para (indice) y ya se procesó la fuente del modo actual,
+        restaura desde cache. Si no, procesa y vuelve a cachear.
+        """
+        entry = self.doc_cache.get(self.indice)
+        if entry and entry.get("values") is not None:
+            if (self.modo == "factura" and entry.get("has_factura")) or \
+            (self.modo == "orden" and entry.get("has_orden")):
+                self._restore_campos(entry["values"])
+                return True  # restauró desde cache
+
+        # No había cache suficiente → procesar y cachear
+        self._procesar_actual()
+        self._save_doc_cache(self.modo)
+        return False
 
     # ---------- Acciones ----------
     def subir_factura(self):
         archivo = filedialog.askopenfilename(title="Seleccionar factura PDF", filetypes=[("PDF files", "*.pdf")])
-        if not archivo: return
+        if not archivo: 
+            return
         self.factura_actual = archivo
         self.factura_textos, self.factura_paginas = leer_pdf_con_ocr(archivo)
+        
+        if not self.orden_paginas:
+            self.doc_cache.clear()
         self.modo, self.indice = "factura", 0
-        procesar_factura(archivo, self.campos, self.area_texto, pagina_index=self.indice)
+        procesar_factura(
+            archivo, self.campos, self.area_texto, pagina_index=self.indice,
+            imagen_pagina=self._imagen_actual(), 
+            texto_dpi_alto=self._texto_actual()  
+        )
+        self._save_doc_cache("factura")
         self.viewer.show_page(on_page_change=True)
+        
 
     def subir_orden(self):
         archivo = filedialog.askopenfilename(title="Seleccionar orden PDF", filetypes=[("PDF files", "*.pdf")])
-        if not archivo: return
+        if not archivo: 
+            return
         self.orden_actual = archivo
         self.orden_textos, self.orden_paginas = leer_pdf_con_ocr(archivo)
+        
+        if not self.factura_paginas:
+            self.doc_cache.clear()
         self.modo, self.indice = "orden", 0
-        procesar_orden(archivo, self.campos, self.area_texto, pagina_index=self.indice)
+
+        procesar_orden(
+        archivo, self.campos, self.area_texto, pagina_index=self.indice,
+        imagen_pagina=self._imagen_actual(),          # <- usa imagen cacheada
+        texto_ocr=self._texto_actual()                # <- opcional: evita OCR si ya tienes texto
+        )
+        self._save_doc_cache("orden")
         self.viewer.show_page(on_page_change=True)
 
     def ver_factura(self):
+        self._save_doc_cache(self.modo)
         self.modo = "factura"
         self.indice = min(self.indice, max(0, len(self.factura_paginas) - 1))
+        self._restore_or_process() 
         self._mostrar_pagina(change=True)
 
     def ver_orden(self):
+        self._save_doc_cache(self.modo)
         self.modo = "orden"
         self.indice = min(self.indice, max(0, len(self.orden_paginas) - 1))
+        self._restore_or_process()
         self._mostrar_pagina(change=True)
 
     def siguiente(self):
         pags = self._paginas_actuales()
         if pags and self.indice < len(pags) - 1:
+            self._save_doc_cache(self.modo)
             self.indice += 1
-            self._procesar_actual()
+            self._restore_or_process()
             self._mostrar_pagina(change=True)
 
     def anterior(self):
         if self.indice > 0:
+            self._save_doc_cache(self.modo)
             self.indice -= 1
-            self._procesar_actual()
+            self._restore_or_process()
             self._mostrar_pagina(change=True)
 
     def guardar_datos(self):
+        self._save_doc_cache(self.modo)   # <-- asegura que el estado actual quede en cache
         datos = [c.get() for c in self.campos]
         print("Datos guardados:", datos)
 
@@ -217,9 +292,18 @@ class LectorGarantiasApp:
 
     def _procesar_actual(self):
         if self.modo == "factura" and self.factura_actual:
-            procesar_factura(self.factura_actual, self.campos, self.area_texto, pagina_index=self.indice)
+            procesar_factura(
+                self.factura_actual, self.campos, self.area_texto, pagina_index=self.indice,
+                imagen_pagina=self._imagen_actual(),
+                texto_dpi_alto=self._texto_actual()
+            )
         elif self.modo == "orden" and self.orden_actual:
-            procesar_orden(self.orden_actual, self.campos, self.area_texto, pagina_index=self.indice)
+            procesar_orden(
+                self.orden_actual, self.campos, self.area_texto, pagina_index=self.indice,
+                imagen_pagina=self._imagen_actual(),
+                texto_ocr=self._texto_actual()
+            )
+
 
     def _completar_nit_y_fecha(self):
         texto_factura = "\n".join(self.factura_textos) if self.factura_textos else ""
@@ -235,11 +319,6 @@ class LectorGarantiasApp:
         # Fecha de revisión (actual)
         fecha_actual = datetime.today().strftime('%Y-%m-%d')
         self.campos[19].delete(0, "end"); self.campos[19].insert(0, fecha_actual)
-
-    # PageViewer pide esta función:
-    def _imagen_actual(self):
-        pags = self._paginas_actuales()
-        return pags[self.indice] if pags and self.indice < len(pags) else None
 
 if __name__ == "__main__":
     root = tk.Tk()
