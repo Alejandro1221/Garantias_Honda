@@ -1,28 +1,36 @@
 import pandas as pd
 
 # Cargar una sola vez el Excel (mejor para rendimiento)
-df_excel = pd.read_excel("referencias.xlsx", usecols=["Referencia", "Desc. item"])
-df_excel["Referencia"] = df_excel["Referencia"].astype(str).str.upper().str.replace(" ", "")
+df_excel = pd.read_excel(
+    "referencias.xlsx",
+    usecols=["Referencia", "Desc. item"],
+    dtype=str,
+    engine="openpyxl"
+).fillna("")
+
+df_excel["Referencia"] = (
+    df_excel["Referencia"]
+    .astype(str)
+    .str.upper()
+    .str.replace(" ", "", regex=False)
+)
+
+DESC_POR_REF = dict(zip(df_excel["Referencia"], df_excel["Desc. item"]))
 
 def buscar_referencias_en_texto(texto_ocr):
-    texto_limpio = texto_ocr.upper().replace(" ", "")
+    if not texto_ocr:
+        return None
+
+    texto_limpio = str(texto_ocr).upper().replace(" ", "")
     resultados = []
 
-    for _, fila in df_excel.iterrows():
-        ref = fila["Referencia"]
-        if ref in texto_limpio:
-            resultados.append({
-                "Referencia": ref,
-                "Descripcion": fila["Desc. item"]
-            })
+    for ref, desc in DESC_POR_REF.items():
+        if ref and ref in texto_limpio:
+            resultados.append({"Referencia": ref, "Descripcion": desc})
 
-    # Si no encuentra nada, pero hay algo que empieza con YUASA, intentamos solo esas
     if not resultados and "YUASA-" in texto_limpio:
-        for ref in df_excel["Referencia"]:
+        for ref, desc in DESC_POR_REF.items():
             if ref.startswith("YUASA-") and ref[:10] in texto_limpio:
-                desc = df_excel[df_excel["Referencia"] == ref]["Desc. item"].values[0]
-                resultados.append({
-                    "Referencia": ref,
-                    "Descripcion": desc
-                })
-    return resultados if resultados else None
+                resultados.append({"Referencia": ref, "Descripcion": desc})
+
+    return resultados or None
