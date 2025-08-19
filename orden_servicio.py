@@ -78,6 +78,6 @@ def procesar_orden(
             campos[25].insert(0, cobro_casamatriz)
 
         responsable = obtener_responsable(motor)
-        campos[26].delete(0, "end")
+        campos[26].delete(0, "end")        
         if responsable:
             campos[26].insert(0, responsable)

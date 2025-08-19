@@ -124,15 +124,10 @@ class LectorGarantiasApp:
         tk.Button(self.root, text="Ver Orden", command=self.ver_orden, bg="lightgreen", width=15).place(x=800, y=20)
         tk.Button(self.root, text="Zoom +", command=self.viewer.zoom_in, width=8, bg="lightgray").place(x=950, y=20)
         tk.Button(self.root, text="Zoom -", command=self.viewer.zoom_out, width=8, bg="lightgray").place(x=1030, y=20)
-        tk.Button(self.root, text="GUARDAR", command=self.guardar_datos, bg="lightgray", width=12).place(x=800, y=700)
-
-        tk.Button(self.root, text="Guardar registro", command=self.guardar_registro,
-          bg="khaki", width=15).place(x=920, y=700)
-        tk.Button(self.root, text="Ver / Exportar", command=self.ver_exportar_tabla,
-                bg="orange", width=15).place(x=1040, y=700)
+        tk.Button(self.root, text="Guardar", command=self.guardar_datos, bg="khaki", width=15).place(x=920, y=600)
+        tk.Button(self.root, text="Ver / Exportar", command=self.ver_exportar_tabla,bg="orange", width=15).place(x=1040, y= 600)
 
     def _configurar_scroll_campos(self):
-        # Rueda funcional incluso sobre Entry: bind_all SOLO cuando el puntero está encima
         for w in (self.canvas_campos, self.frame_campos):
             w.bind("<Enter>", self._activa_scroll_campos)
             w.bind("<Leave>", self._desactiva_scroll_campos)
@@ -271,23 +266,17 @@ class LectorGarantiasApp:
             self._restore_or_process()
             self._mostrar_pagina(change=True)
 
-    def guardar_datos(self):
-        self._save_doc_cache(self.modo)   # <-- asegura que el estado actual quede en cache
-        datos = [c.get() for c in self.campos]
-        print("Datos guardados:", datos)
 
-    # ---------- Registro y tabla ----------
+ 
     def guardar_datos(self):
-        self._save_doc_cache(self.modo)
-        datos = [c.get() for c in self.campos]
-        print("Datos guardados:", datos)
-
-    # 👇 AQUI AGREGAS ESTOS DOS
-    def guardar_registro(self):
+        """Guarda snapshot en cache y agrega registro a la tabla."""
+        self._save_doc_cache(self.modo)  
         fila = [c.get() for c in self.campos]
         self.registros.append(fila)
         self.area_texto.insert("end", "\n[OK] Registro guardado.\n")
+        print("Registro guardado:", fila)
 
+    # ---------- Registro y tabla ----------
     def ver_exportar_tabla(self):
         abrir_tabla_registros(self.root, self.headers, self.registros)
 

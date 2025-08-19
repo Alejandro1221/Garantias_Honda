@@ -34,9 +34,12 @@ def procesar_factura(
     area_texto,
     pagina_index: int = 0,
     imagen_pagina: Image.Image = None,   
+    texto_ocr: str = None, 
     texto_dpi_alto: str = None,          
     texto_dpi_bajo: str = None          
 ):
+    if texto_ocr is not None and not texto_dpi_alto:
+        texto_dpi_alto = texto_ocr
     if texto_dpi_alto is None:
         if imagen_pagina is not None:
             texto_dpi_alto = _ocr_desde_imagen(imagen_pagina, dpi_objetivo=300)
