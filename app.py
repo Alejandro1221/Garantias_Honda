@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import filedialog
 from datetime import datetime
+from tabla_registros import abrir_tabla_registros
+
 
 from PIL import Image  
 import platform
@@ -76,32 +78,32 @@ class LectorGarantiasApp:
             "Concesionario",#5
             "Regional Responsable",#6
             "Agencia",#7
-            "Chasis",#9
-            "Motor",#10
-            "Placa",#11
-            "Modelo",#12
-            "Modelo especifico",#13
-            "Casa Matriz",#14
-            "Fecha de venta",#15
-            "Fecha de daño",#16
-            "Periodo de garantia", #17
-            "Kilometraje", #18
-            "Rango de kilometraje", #19
-            "Fecha de revision", #20
-            "Clasificacion", #21
-            "Referencia", #22
-            "Descripcion", #23
-            "Descripcion de la falla", #24
-            "clase de daño", #25
-            "Cobro de casamatriz", #26
-            "Responsable de la falla", #27
-            "Observaciones", #28
-            "Factura interna", #29
-            "Valor total Factura", #30
-            "Mano de obra", #31
-            "Costo Total de repuestos", #32
-            "Fecha expedicion Factura", #33
-            "Estado" #34
+            "Chasis",#8
+            "Motor",#9
+            "Placa",#10
+            "Modelo",#11
+            "Modelo especifico",#12
+            "Casa Matriz",#13
+            "Fecha de venta",#14
+            "Fecha de daño",#15
+            "Periodo de garantia", #16
+            "Kilometraje", #17
+            "Rango de kilometraje", #18
+            "Fecha de revision", #19
+            "Clasificacion", #20
+            "Referencia", #21
+            "Descripcion", #22
+            "Descripcion de la falla", #23
+            "clase de daño", #24
+            "Cobro de casamatriz", #25
+            "Responsable de la falla", #26
+            "Observaciones", #27
+            "Factura interna", #28
+            "Valor total Factura", #329
+            "Mano de obra", #30
+            "Costo Total de repuestos", #31
+            "Fecha expedicion Factura", #32
+            "Estado" #33
         ]
         
         for nombre in nombres:
@@ -109,6 +111,9 @@ class LectorGarantiasApp:
             entrada = tk.Entry(self.frame_campos)
             entrada.pack(fill="x", padx=5, pady=2)
             self.campos.append(entrada)
+
+        self.headers = nombres[:]   # títulos de columnas
+        self.registros = []         # acumulador de filas guardadas
 
     def _construir_botones(self):
         tk.Button(self.root, text="Cargar Factura", command=self.subir_factura, bg="lightblue", width=15).place(x=30, y=20)
@@ -120,6 +125,11 @@ class LectorGarantiasApp:
         tk.Button(self.root, text="Zoom +", command=self.viewer.zoom_in, width=8, bg="lightgray").place(x=950, y=20)
         tk.Button(self.root, text="Zoom -", command=self.viewer.zoom_out, width=8, bg="lightgray").place(x=1030, y=20)
         tk.Button(self.root, text="GUARDAR", command=self.guardar_datos, bg="lightgray", width=12).place(x=800, y=700)
+
+        tk.Button(self.root, text="Guardar registro", command=self.guardar_registro,
+          bg="khaki", width=15).place(x=920, y=700)
+        tk.Button(self.root, text="Ver / Exportar", command=self.ver_exportar_tabla,
+                bg="orange", width=15).place(x=1040, y=700)
 
     def _configurar_scroll_campos(self):
         # Rueda funcional incluso sobre Entry: bind_all SOLO cuando el puntero está encima
@@ -266,6 +276,21 @@ class LectorGarantiasApp:
         datos = [c.get() for c in self.campos]
         print("Datos guardados:", datos)
 
+    # ---------- Registro y tabla ----------
+    def guardar_datos(self):
+        self._save_doc_cache(self.modo)
+        datos = [c.get() for c in self.campos]
+        print("Datos guardados:", datos)
+
+    # 👇 AQUI AGREGAS ESTOS DOS
+    def guardar_registro(self):
+        fila = [c.get() for c in self.campos]
+        self.registros.append(fila)
+        self.area_texto.insert("end", "\n[OK] Registro guardado.\n")
+
+    def ver_exportar_tabla(self):
+        abrir_tabla_registros(self.root, self.headers, self.registros)
+
     # ---------- Helpers ----------
     def _paginas_actuales(self):
         return self.factura_paginas if self.modo == "factura" else self.orden_paginas
@@ -295,7 +320,7 @@ class LectorGarantiasApp:
             procesar_factura(
                 self.factura_actual, self.campos, self.area_texto, pagina_index=self.indice,
                 imagen_pagina=self._imagen_actual(),
-                texto_dpi_alto=self._texto_actual()
+                texto_ocr=self._texto_actual()
             )
         elif self.modo == "orden" and self.orden_actual:
             procesar_orden(
