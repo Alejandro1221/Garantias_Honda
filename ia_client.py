@@ -1,17 +1,13 @@
 # ia_client.py
 import os
 from openai import OpenAI
+from dotenv import load_dotenv
 
-def cargar_api_key(path="apikey.txt"):
-    try:
-        with open(path, "r") as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        print("No se encontró el archivo con la API Key")
-        return None
+# --- Cargar variables de entorno desde .env ---
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
 
 # --- Inicializar cliente ---
-api_key = cargar_api_key()
 if api_key:
     _client = OpenAI(api_key=api_key)
     print("API Key cargada: ✔️")
