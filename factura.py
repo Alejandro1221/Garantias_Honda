@@ -90,3 +90,4 @@ def procesar_factura(
     campos[32].delete(0, "end")
     campos[32].insert(0, fecha)
 
+

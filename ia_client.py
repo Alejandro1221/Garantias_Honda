@@ -1,4 +1,3 @@
-# ia_client.py
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -23,7 +22,7 @@ def _anonimizar(texto: str) -> str:
     texto = re.sub(r"\b\d{7,12}(-\d)?\b", "NIT_REDACTED", texto)      # NIT
     return texto
 
-USE_IA = True 
+USE_IA = False
 
 # --- Función principal ---
 def extraer_descripcion_falla(texto_ocr: str) -> str:

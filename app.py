@@ -5,7 +5,6 @@ from datetime import datetime
 from tabla_registros import abrir_tabla_registros
 
 from PIL import Image  
-import platform
 
 from viewer import PageViewer
 from pdf_io import leer_pdf_con_ocr
@@ -330,8 +329,6 @@ class LectorGarantiasApp:
             self._restore_or_process()
             self._mostrar_pagina(change=True)
 
-
- 
     def guardar_datos(self):
         """Guarda snapshot en cache y agrega registro a la tabla."""
         self._save_doc_cache(self.modo)  
@@ -383,7 +380,6 @@ class LectorGarantiasApp:
                 imagen_pagina=self._imagen_actual(),
                 texto_ocr=self._texto_actual()
             )
-
 
     def _completar_nit_y_fecha(self):
         texto_factura = "\n".join(self.factura_textos) if self.factura_textos else ""
