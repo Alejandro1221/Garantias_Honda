@@ -3,6 +3,8 @@ import fitz
 import pytesseract
 import io
 from PIL import Image
+from ia_client import extraer_descripcion_falla
+import threading
 
 from busqueda_motor import (
     extraer_motor_cerca_vin,
@@ -24,6 +26,16 @@ def extraer_vin(texto: str) -> str:
         if m:
             return m.group(1)
     return "No detectado"
+
+def _normalizar_motor(s: str) -> str:
+    if not s:
+        return s
+    s = s.upper().replace("—","-").replace("–","-")  # guiones raros → '-'
+    # Cambios solo cuando hay dígitos cerca (evita tocar letras puras)
+    s = re.sub(r'(?<=\d)O|O(?=\d)', '0', s)  # O junto a dígitos → 0
+    s = re.sub(r'(?<=\d)I|I(?=\d)', '1', s)  # I junto a dígitos → 1
+    s = re.sub(r'(?<=\d)S|S(?=\d)', '5', s)  # S junto a dígitos → 5 (por si acaso)
+    return s
 
 def extraer_texto_dpi_alto(ruta_pdf: str, pagina_index: int, dpi: int = 700) -> str:
     # Render de la página a 700 DPI y OCR con eng+spa tal como lo tenías
@@ -55,10 +67,31 @@ def procesar_orden(
     if vin != "No detectado":
         campos[8].insert(0, vin)
 
+            # --- Lanzar IA en segundo plano para "Descripción de la falla" ---
+    def _rellenar_desc_async(texto, campos_ref, area_ref):
+        try:
+            desc = extraer_descripcion_falla(texto)
+            if desc:
+                # Actualizar el Entry desde el hilo principal
+                area_ref.after(0, lambda: (
+                    campos_ref[23].delete(0, "end"),
+                    campos_ref[23].insert(0, desc)
+                ))
+        except Exception as e:
+            print("[IA] Error:", e)
+
+    threading.Thread(
+        target=_rellenar_desc_async,
+        args=(texto_ocr, campos, area_texto),
+        daemon=True
+    ).start()
+
+
     # MOTOR cerca del VIN
     motor = extraer_motor_cerca_vin(texto_ocr, vin if vin != "No detectado" else "")
     campos[9].delete(0, "end")
     if motor != "No detectado":
+        motor = _normalizar_motor(motor)
         campos[9].insert(0, motor)
 
         # Derivados del motor
@@ -81,3 +114,5 @@ def procesar_orden(
         campos[26].delete(0, "end")        
         if responsable:
             campos[26].insert(0, responsable)
+
+

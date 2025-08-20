@@ -72,6 +72,15 @@ def procesar_factura(
     campos[0].delete(0, "end")
     campos[0].insert(0, numero)
 
+    campos[3].delete(0, "end")
+    campos[3].insert(0, numero)
+
+    campos[3].delete(0, "end")
+    campos[3].insert(0, numero)
+
+    campos[28].delete(0, "end")
+    campos[28].insert(0, numero) 
+
     # Valor total de factura
     valor_total = extraer_valor_total_factura(texto_dpi_alto) or ""
     campos[29].delete(0, "end")

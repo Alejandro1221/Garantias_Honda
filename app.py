@@ -1,8 +1,8 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 from datetime import datetime
 from tabla_registros import abrir_tabla_registros
-
 
 from PIL import Image  
 import platform
@@ -44,8 +44,8 @@ class LectorGarantiasApp:
         self._construir_panel_campos()
         self._construir_botones()
         self._configurar_scroll_campos()
+        self._construir_progreso()
     
-
     # ---------- UI ----------
     def _construir_panel_ocr(self):
         self.area_texto = tk.Text(self.root, wrap="word", width=50, height=30)
@@ -110,10 +110,16 @@ class LectorGarantiasApp:
             tk.Label(self.frame_campos, text=nombre + ":", anchor="w", font=("Arial", 9)).pack(fill="x", padx=5, pady=2)
             entrada = tk.Entry(self.frame_campos)
             entrada.pack(fill="x", padx=5, pady=2)
+
+            entrada.bind("<KeyRelease>", self._on_entry_change)
+            entrada.bind("<<Paste>>", self._on_entry_change)
+            entrada.bind("<<Cut>>", self._on_entry_change)
+            entrada.bind("<FocusOut>", self._on_entry_change)
             self.campos.append(entrada)
 
         self.headers = nombres[:]   # títulos de columnas
         self.registros = []         # acumulador de filas guardadas
+        self._actualizar_progreso()
 
     def _construir_botones(self):
         tk.Button(self.root, text="Cargar Factura", command=self.subir_factura, bg="lightblue", width=15).place(x=30, y=20)
@@ -127,6 +133,63 @@ class LectorGarantiasApp:
         tk.Button(self.root, text="Guardar", command=self.guardar_datos, bg="khaki", width=15).place(x=920, y=600)
         tk.Button(self.root, text="Ver / Exportar", command=self.ver_exportar_tabla,bg="orange", width=15).place(x=1040, y= 600)
 
+    # --- Barra de progreso de completitud ---
+    def _construir_progreso(self):
+        # Contenedor (ajusta posición/tamaño a tu gusto)
+        self.progreso_frame = tk.Frame(self.root)
+        self.progreso_frame.place(x=350, y=600, width=430)
+
+        # Label con conteo
+        self.lbl_progreso = tk.Label(
+            self.progreso_frame,
+            text="Campos completados: 0/0 (0.0%)",
+            font=("Arial", 10, "bold")
+        )
+        self.lbl_progreso.pack(fill="x", pady=(0, 4))
+
+        # Progressbar
+        self.progreso = ttk.Progressbar(
+            self.progreso_frame,
+            orient="horizontal",
+            mode="determinate"
+        )
+        self.progreso.pack(fill="x")
+
+        try:
+            style = ttk.Style(self.root)
+            style.theme_use("clam")
+            style.configure("green.Horizontal.TProgressbar",
+                            troughcolor="#eeeeee", background="#4CAF50")
+            self.progreso.configure(style="green.Horizontal.TProgressbar")
+        except Exception:
+            pass  # si falla el tema, seguimos igual
+
+        # Primer cálculo
+        self._actualizar_progreso()
+
+        # ---------- Helpers de progreso ----------
+    def _calcular_progreso(self):
+        total = len(self.campos) if hasattr(self, "campos") else 0
+        llenos = sum(1 for c in self.campos if c.get().strip()) if total else 0
+        pct = (llenos / total) * 100 if total else 0.0
+        return llenos, total, pct
+
+    def _actualizar_progreso(self):
+        llenos, total, pct = self._calcular_progreso()
+        if hasattr(self, "lbl_progreso"):
+            self.lbl_progreso.config(
+                text=f"Campos completados: {llenos}/{total} ({pct:.1f}%)"
+            )
+        if hasattr(self, "progreso"):
+            self.progreso["maximum"] = total if total else 1
+            self.progreso["value"] = llenos
+
+    def _on_entry_change(self, event=None):
+        if hasattr(self, "_prog_after_id"):
+            self.root.after_cancel(self._prog_after_id)
+        self._prog_after_id = self.root.after(80, self._actualizar_progreso)
+
+   #----------------------------------------------------------
     def _configurar_scroll_campos(self):
         for w in (self.canvas_campos, self.frame_campos):
             w.bind("<Enter>", self._activa_scroll_campos)
@@ -216,8 +279,8 @@ class LectorGarantiasApp:
         )
         self._save_doc_cache("factura")
         self.viewer.show_page(on_page_change=True)
+        self._actualizar_progreso()
         
-
     def subir_orden(self):
         archivo = filedialog.askopenfilename(title="Seleccionar orden PDF", filetypes=[("PDF files", "*.pdf")])
         if not archivo: 
@@ -236,6 +299,7 @@ class LectorGarantiasApp:
         )
         self._save_doc_cache("orden")
         self.viewer.show_page(on_page_change=True)
+        self._actualizar_progreso()
 
     def ver_factura(self):
         self._save_doc_cache(self.modo)
@@ -274,6 +338,7 @@ class LectorGarantiasApp:
         fila = [c.get() for c in self.campos]
         self.registros.append(fila)
         self.area_texto.insert("end", "\n[OK] Registro guardado.\n")
+        self._actualizar_progreso()
         print("Registro guardado:", fila)
 
     # ---------- Registro y tabla ----------
@@ -303,6 +368,7 @@ class LectorGarantiasApp:
         self._completar_nit_y_fecha()
         # forzar redibujo
         self.viewer.show_page(on_page_change=change)
+        self._actualizar_progreso()
 
     def _procesar_actual(self):
         if self.modo == "factura" and self.factura_actual:
