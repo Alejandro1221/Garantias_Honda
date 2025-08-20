@@ -1,4 +1,9 @@
+# Entorno virtual
 .venv/
+
+# Cachés de Python
 __pycache__/
+*.pyc
+
+# Archivos sensibles
 .env
-apikey.txt
