@@ -19,7 +19,6 @@ def _ocr_desde_pdf(ruta_pdf: str, pagina_index: int, dpi: int = 700, lang: str =
     img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
     return pytesseract.image_to_string(img, lang=lang)
 
-
 def _ocr_desde_imagen(img_base: Image.Image, dpi_objetivo: int = 300, lang: str = "eng") -> str:
     base_dpi = 180.0  # aprox del render base que usa tu app
     escala = max(0.5, min(dpi_objetivo / base_dpi, 2.0))  # límites para no explotar RAM

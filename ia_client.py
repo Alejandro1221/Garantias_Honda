@@ -23,7 +23,7 @@ def _anonimizar(texto: str) -> str:
     texto = re.sub(r"\b\d{7,12}(-\d)?\b", "NIT_REDACTED", texto)      # NIT
     return texto
 
-USE_IA = False 
+USE_IA = True 
 
 # --- Función principal ---
 def extraer_descripcion_falla(texto_ocr: str) -> str:
