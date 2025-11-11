@@ -21,15 +21,3 @@ pruebapi.py
 pruebapi2.py
 pruebapi3.py
 
-printf "pruebapi.py\npruebapi2.py\npruebapi3.py\n.env
-
-
-
-
-pruebapi.py
-pruebapi2.py
-pruebapi3.py
-.env
-__pycache__/
-*.pyc
-.venv/
