@@ -1,0 +1,35 @@
+# Entorno virtual
+.venv/
+
+# Cachés de Python
+__pycache__/
+*.pyc
+
+# Archivos sensibles
+.env
+
+#Carpeta de fotos garantias
+fotos/
+
+Garantias/
+*.pdf
+*.png
+*.jpg
+__pycache__/
+
+pruebapi.py
+pruebapi2.py
+pruebapi3.py
+
+printf "pruebapi.py\npruebapi2.py\npruebapi3.py\n.env
+
+
+
+
+pruebapi.py
+pruebapi2.py
+pruebapi3.py
+.env
+__pycache__/
+*.pyc
+.venv/
