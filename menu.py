@@ -1,7 +1,6 @@
 import os, sys
 import tkinter as tk
 from tkinter import ttk
-from escaner import LectorGarantiasApp
 from distribuidores_ui import DistribuidoresView
 from clasificador_ui import ClasificadorView
 from concesionariosUI import ConcesionariosView
@@ -75,7 +74,6 @@ class MainMenu(tk.Tk):
 
         nav_btn("🏠 Dashboard", "dashboard")
         nav_btn("🗂 Clasificador", "clasificador") 
-        nav_btn("🧾 Escáner", "scanner")
         nav_btn(" GSM", "gsm")
         nav_btn("🔍 Distribuidores", "distribuidores")
         nav_btn("🏢 Concesionarios", "concesionarios")
@@ -102,14 +100,13 @@ class MainMenu(tk.Tk):
         # Registrar vistas
         self.router.register("dashboard", DashboardView)
         self.router.register("clasificador", ClasificadorView)
-        self.router.register("scanner", ScannerView)   
         self.router.register("gsm", GSMView)
         self.router.register("distribuidores", DistribuidoresView)
         self.router.register("reportes", ReportesView)
         self.router.register("concesionarios", ConcesionariosView)
 
         # Mostrar por defecto
-        self.router.show("scanner")
+        self.router.show("gsm")
 
     def toggle_sidebar(self):
         self._sidebar_expanded = not self._sidebar_expanded
@@ -131,13 +128,6 @@ class DashboardView(ttk.Frame):
     def __init__(self, parent, controller=None):
         super().__init__(parent, padding=16)
         ttk.Label(self, text="Bienvenido al Dashboard").pack()
-
-class ScannerView(ttk.Frame):
-    title = "Escáner"
-    def __init__(self, parent, controller=None):
-        super().__init__(parent)
-        # Aquí se monta tu app OCR dentro del frame
-        self.app = LectorGarantiasApp(root=None, host=self)  
 
 class VinMotorView(ttk.Frame):
     title = "VIN/Motor"

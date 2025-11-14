@@ -3,11 +3,14 @@ import pandas as pd
 from typing import Dict, List, Optional
 from pathlib import Path
 
-EXCEL_PATH = Path(__file__).resolve().parent / "Tablas" / "Referencias.xlsx"
+# Carpeta raíz del proyecto (PruebaLectura)
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+# Tablas/Referencias.xlsx está en la raíz, no dentro de GSM
+EXCEL_PATH = BASE_DIR / "Tablas" / "Referencias.xlsx"
 
 df_excel = pd.read_excel(
     EXCEL_PATH,
-    usecols=["Referencia", "Desc. item"],
     dtype=str,
     engine="openpyxl"
 ).fillna("")
